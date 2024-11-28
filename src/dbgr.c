@@ -36,7 +36,7 @@ void continue_execution(debugger *dbg) {
     waitpid(dbg->prog_pid, &wait_status, options);
 }
 
-bool is_prefix(const char *s, const char *of) {
+bool is_prefix(char *s, const char *of) {
     size_t s_len = strlen(s);
     size_t of_len = strlen(of);
     if(s_len > of_len) return false;
@@ -53,7 +53,7 @@ void handle_command(debugger *dbg, char *line) {
         command[sizeof(command) - 1] = '\0';
     }
 
-    if(is_prefix(command, "continue")) {
+    if(is_prefix(&args[0], "continue")) {
         continue_execution(dbg);
     } else {
         fprintf(stderr, "unknown command\n");
