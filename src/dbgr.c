@@ -8,11 +8,13 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include "hash/hashb.h"
 
 /*typedef struct {
     pid_t target_pid; //PID of process being debugged
@@ -26,6 +28,7 @@
 typedef struct {
     pid_t prog_pid;
     char *prog_name;
+    hash_table m_breakpoint;
 } debugger;
 
 typedef struct {
@@ -33,25 +36,25 @@ typedef struct {
     intptr_t m_addr;
     bool m_enabled;
     uint8_t saved_data;
-    intptr_t m_breakpoint;
 } breakpoint;
+   
 
-bool is_enabled(breakpoint *dbg) {
+bool is_enabled(breakpoint *dbg) {  //breakpoint function
     return dbg->m_enabled;
 }
 
-intptr_t get_address(breakpoint *dbg) {
+intptr_t get_address(breakpoint *dbg) { ///breakpoint funtion
     return dbg->m_addr;
 }
 
-void breakpoint_disable(breakpoint *dbg) {
+void breakpoint_disable(breakpoint *dbg) { //breakpoint function
     long data = ptrace(PTRACE_PEEKDATA, dbg->prog_pid, dbg->m_addr, NULL);
     uint64_t restored_data = ((data & ~0xff) | dbg->saved_data);
     ptrace(PTRACE_POKEDATA, dbg->prog_pid, dbg->m_addr, restored_data);
     dbg->m_enabled = false;
 }
 
-void breakpoint_enable(breakpoint *dbg) {
+void breakpoint_enable(breakpoint *dbg) {  //breakpoint function
     long data = ptrace(PTRACE_PEEKDATA, dbg->prog_pid, dbg->m_addr, NULL);
     dbg->saved_data = (uint8_t) data & 0xff;
 
@@ -61,7 +64,14 @@ void breakpoint_enable(breakpoint *dbg) {
    dbg->m_enabled = true;
 } 
 
-void continue_execution(debugger *dbg) {
+void set_breakpoint_at_address(debugger *dbg, intptr_t addr) {
+    fprintf(stderr, "set breakpoint at address 0x%" PRIxPTR "\n", (intptr_t) addr);
+    breakpoint bp;
+    breakpoint_enable(&bp);
+    add_breakpoint(&dbg->m_breakpoint, addr, NULL);
+}
+
+void continue_execution(debugger *dbg) {  //debugger function
     ptrace(PTRACE_CONT, dbg->prog_pid, NULL, NULL);
 
     int wait_status;
@@ -69,7 +79,7 @@ void continue_execution(debugger *dbg) {
     waitpid(dbg->prog_pid, &wait_status, options);
 }
 
-bool is_prefix(char *s, const char *of) {
+bool is_prefix(char *s, const char *of) { //debugger function
     size_t s_len = strlen(s);
     size_t of_len = strlen(of);
     if(s_len > of_len) return false;
@@ -77,7 +87,7 @@ bool is_prefix(char *s, const char *of) {
     return strncmp(s, of, s_len) == 0;
 }
 
-void handle_command(debugger *dbg, char *line) {
+void handle_command(debugger *dbg, char *line) { //debugger function
     char delim[] = " ";
     char *args = strtok(line, delim);
     if(args != NULL) {
@@ -93,7 +103,7 @@ void handle_command(debugger *dbg, char *line) {
     }
 }
 
-void run(debugger *dbg) {
+void run(debugger *dbg) { //init function
     int wait_status;
     int options = 0;
     waitpid(dbg->prog_pid, &wait_status, options);
