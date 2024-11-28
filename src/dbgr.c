@@ -33,6 +33,7 @@ typedef struct {
     intptr_t m_addr;
     bool m_enabled;
     uint8_t saved_data;
+    intptr_t m_breakpoint;
 } breakpoint;
 
 bool is_enabled(breakpoint *dbg) {
