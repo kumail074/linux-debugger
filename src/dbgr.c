@@ -35,6 +35,21 @@ typedef struct {
     uint8_t saved_data;
 } breakpoint;
 
+bool is_enabled(breakpoint *dbg) {
+    return dbg->m_enabled;
+}
+
+intptr_t get_address(breakpoint *dbg) {
+    return dbg->m_addr;
+}
+
+void breakpoint_disable(breakpoint *dbg) {
+    long data = ptrace(PTRACE_PEEKDATA, dbg->prog_pid, dbg->m_addr, NULL);
+    uint64_t restored_data = ((data & ~0xff) | dbg->saved_data);
+    ptrace(PTRACE_POKEDATA, dbg->prog_pid, dbg->m_addr, restored_data);
+    dbg->m_enabled = false;
+}
+
 void breakpoint_enable(breakpoint *dbg) {
     long data = ptrace(PTRACE_PEEKDATA, dbg->prog_pid, dbg->m_addr, NULL);
     dbg->saved_data = (uint8_t) data & 0xff;
