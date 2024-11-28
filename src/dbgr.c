@@ -28,6 +28,23 @@ typedef struct {
     char *prog_name;
 } debugger;
 
+typedef struct {
+    pid_t prog_pid;
+    intptr_t m_addr;
+    bool m_enabled;
+    uint8_t saved_data;
+} breakpoint;
+
+void breakpoint_enable(breakpoint *dbg) {
+    long data = ptrace(PTRACE_PEEKDATA, dbg->prog_pid, dbg->m_addr, NULL);
+    dbg->saved_data = (uint8_t) data & 0xff;
+
+    uint64_t int3 = 0xcc;
+    uint64_t data_int3 = ((data & ~0xff) | int3);
+    ptrace(PTRACE_POKEDATA, dbg->prog_pid, dbg->m_addr, data_int3);
+   dbg->m_enabled = true;
+} 
+
 void continue_execution(debugger *dbg) {
     ptrace(PTRACE_CONT, dbg->prog_pid, NULL, NULL);
 
