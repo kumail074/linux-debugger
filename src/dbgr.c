@@ -96,8 +96,13 @@ void handle_command(debugger *dbg, char *line) { //debugger function
         command[sizeof(command) - 1] = '\0';
     }
 
-    if(is_prefix(&args[0], "continue")) {
+    if(is_prefix(&args[0], "cont")) {
         continue_execution(dbg);
+    } else if (is_prefix(&args[0], "break")) {
+        char addr[3];
+        strncpy(addr, &args[1], 2);
+        intptr_t address = strtol(addr, NULL, 16);
+        set_breakpoint_at_address(dbg, address);
     } else {
         fprintf(stderr, "unknown command\n");
     }
