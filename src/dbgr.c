@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -14,6 +15,7 @@
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/user.h>
 #include "hash/hashb.h"
 
 /*typedef struct {
@@ -36,7 +38,7 @@ enum reg {
     fs, gs, ss, ds, es
 };
 
-const size_t n_registers = 27;
+#define N_REGISTERS 27
 
 typedef struct {
     enum reg r;
@@ -44,7 +46,7 @@ typedef struct {
     char *name;
 } reg_descriptor;
 
-const reg_descriptor g_register_description[n_registers] = {
+reg_descriptor g_register_description[N_REGISTERS] = {
     { r15, 15, "r15" },
     { r14, 14, "r14" },
     { r13, 13, "r13" },
@@ -87,6 +89,45 @@ typedef struct {
     uint8_t saved_data;
 } breakpoint;
    
+uint64_t get_register_value(pid_t pid, enum reg r) {
+    struct user_regs_struct regs;
+
+    if(ptrace(PTRACE_GETREGS, pid, NULL, &regs) == -1) {
+        perror("ptrace(PTRACE_GETREGS)");
+        return 0;
+    }
+    for(size_t i = 0; i < N_REGISTERS; i++) {
+        if(g_register_description[i].r == r) {
+            uint64_t *regptr = (uint64_t *)((char *)&regs + g_register_description[i].dwarf_r);
+            return *regptr;
+        }
+    }
+    fprintf(stderr, "Register not found\n");
+    return 0;
+}
+
+void set_register_value(pid_t pid, enum reg r, uint64_t value) {
+    struct user_regs_struct regs;
+    reg_descriptor *target = NULL;
+    ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+    for(size_t i = 0; i < N_REGISTERS; i++) {
+        if(g_register_description[i].r == r) {
+            target = &g_register_description[i];
+            break;
+        }
+    }
+    if(target == NULL) {
+        fprintf(stderr, "error: register not found.\n");
+        return;
+
+    }
+    uint64_t register_ptr = (uint64_t)((char*)&regs + offsetof(struct user_regs_struct, rax) + (target - g_register_description));
+    register_ptr = value;
+    if(ptrace(PTRACE_SETREGS, pid, NULL, &regs) == -1) {
+        perror("ptrace(SETREGS)");
+        return;
+    }
+}
 
 bool is_enabled(breakpoint *dbg) {  //breakpoint function
     return dbg->m_enabled;
