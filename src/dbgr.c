@@ -220,20 +220,31 @@ bool is_prefix(char *s, const char *of) { //debugger function
 
 void handle_command(debugger *dbg, char *line) { //debugger function
     char delim[] = " ";
-    char *args = strtok(line, delim);
+    char **args = strtok(line, delim);
     if(args != NULL) {
         char command[50];
         strncpy(command, args, sizeof(command) - 1);
         command[sizeof(command) - 1] = '\0';
     }
 
-    if(is_prefix(&args[0], "cont")) {
+    if(is_prefix(args[0], "cont")) {
         continue_execution(dbg);
-    } else if (is_prefix(&args[0], "break")) {
+    } else if (is_prefix(args[0], "break")) {
         char addr[3];
-        strncpy(addr, &args[1], 2);
+        strncpy(addr, args[1], 2);
         intptr_t address = strtol(addr, NULL, 16);
         set_breakpoint_at_address(dbg, address);
+    } else if (is_prefix(args[0], "register")) {
+       if(is_prefix(args[1], "dump")) {
+          dump_registers(dbg->prog_pid);
+       } else if (is_prefix(args[1], "read")) {
+           get_register_value(dbg->prog_pid, get_register_from_name(args[2]));
+       } else if (is_prefix(args[1], "write")) {
+           char *reg_name = args[2];
+           char *val = args[3];
+           uint64_t value = strtoll(val, NULL, 16);
+           set_register_value(dbg->prog_pid, get_register_from_name(reg_name), value);
+       }
     } else {
         fprintf(stderr, "unknown command\n");
     }
