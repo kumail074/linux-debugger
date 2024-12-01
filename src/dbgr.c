@@ -129,6 +129,17 @@ void set_register_value(pid_t pid, enum reg r, uint64_t value) {
     }
 }
 
+uint64_t get_register_value_from_dwarf_register(pid_t pid, unsigned regum) {
+    for(size_t i = 0; i < N_REGISTERS; i++) {
+        if(g_register_description[i].dwarf_r == regum) {
+            return get_register_value(pid, g_register_description[i].r);
+        }
+    }
+    fprintf(stderr, "error: unknown dwarf register.\n");
+    exit(EXIT_FAILURE);
+        
+}
+
 bool is_enabled(breakpoint *dbg) {  //breakpoint function
     return dbg->m_enabled;
 }
