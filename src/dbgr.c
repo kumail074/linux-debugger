@@ -140,6 +140,36 @@ uint64_t get_register_value_from_dwarf_register(pid_t pid, unsigned regum) {
         
 }
 
+char* get_register_name(enum reg r) {
+    for(size_t i = 0; i < N_REGISTERS; i++) {
+        if(g_register_description[i].r == r) {
+            return g_register_description[i].name;
+            break;
+        }
+    }
+    fprintf(stderr, "error: not found.\n");
+    exit(EXIT_FAILURE);
+}
+
+enum reg get_register_from_name(const char* name) {
+    for(size_t i = 0; i < N_REGISTERS; i++) {
+        if(g_register_description[i].name == name){
+            return g_register_description[i].r;
+            break;
+        }
+    }
+    fprintf(stderr, "error: not found.\n");
+    exit(EXIT_FAILURE);
+}
+
+void dump_registers(pid_t pid) { //debugger function
+    for(int i = 0; g_register_description[i].name != NULL; i++) {
+        reg_descriptor *rd = &g_register_description[i];
+        uint64_t reg_value = get_register_value(pid, rd->r);
+        printf("%s 0x%016" PRIx64 "\n", rd->name, rd->dwarf_r);
+    }
+}
+
 bool is_enabled(breakpoint *dbg) {  //breakpoint function
     return dbg->m_enabled;
 }
