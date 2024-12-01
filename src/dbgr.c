@@ -220,12 +220,18 @@ bool is_prefix(char *s, const char *of) { //debugger function
 
 void handle_command(debugger *dbg, char *line) { //debugger function
     char delim[] = " ";
-    char **args = strtok(line, delim);
-    if(args != NULL) {
+    char *args[10];
+    char *token = strtok(line, delim);
+    int i = 0;
+    while(token != NULL && i < 10) {
+        args[i++] = token;
+        token = strtok(NULL, delim);
+    }
+    /*if(args != NULL) {
         char command[50];
         strncpy(command, args, sizeof(command) - 1);
         command[sizeof(command) - 1] = '\0';
-    }
+    }*/
 
     if(is_prefix(args[0], "cont")) {
         continue_execution(dbg);
