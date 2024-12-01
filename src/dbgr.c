@@ -170,6 +170,14 @@ void dump_registers(pid_t pid) { //debugger function
     }
 }
 
+uint64_t read_memory(debugger *dbg, uint64_t address) { //debugger function
+    return ptrace(PTRACE_PEEKDATA, dbg->prog_pid, address, NULL);
+}
+
+void write_memory(debugger *dbg, uint64_t address, uint64_t value) {
+    ptrace(PTRACE_POKEDATA, dbg->prog_pid, address, value);
+}
+
 bool is_enabled(breakpoint *dbg) {  //breakpoint function
     return dbg->m_enabled;
 }
@@ -251,6 +259,15 @@ void handle_command(debugger *dbg, char *line) { //debugger function
            uint64_t value = strtoll(val, NULL, 16);
            set_register_value(dbg->prog_pid, get_register_from_name(reg_name), value);
        }
+    } else if (is_prefix(args[0], "memory")){
+        char *addr = args[2];
+        if(is_prefix(args[1], "read")) {
+           read_memory(dbg, strtoll(addr, 0, 16));
+        }
+        if(is_prefix(args[1], "write")) {
+           char *val = args[2];
+           write_memory(dbg, strtoll(addr, 0, 16), strtoll(val, 0, 16));
+        }
     } else {
         fprintf(stderr, "unknown command\n");
     }
