@@ -185,7 +185,7 @@ void wait_for_signal(pid_t pid) {
 }
 
 void step_over_breakpoint(debugger *dbg) {
-    uint64_t possible_breakpoint_location = get_pc(&dbg);
+    uint64_t possible_breakpoint_location = get_pc(dbg);
     breakpoint *bp = NULL;
     breakpoint *t = NULL;
     int i = 0;
