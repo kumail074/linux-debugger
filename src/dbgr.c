@@ -170,6 +170,42 @@ void dump_registers(pid_t pid) { //debugger function
     }
 }
 
+uint64_t get_pc(debugger *dbg) { //debugger function
+    return get_register_value(dbg->prog_pid, rip);
+}
+
+void set_pc(debugger *dbg, uint64_t pc) { //debugger function
+    set_register_value(dbg->prog_pid, rip, pc);
+}
+
+void wait_for_signal(pid_t pid) {
+    int wait_status;
+    int options = 0;
+    waitpid(pid, &wait_status, options);
+}
+
+void step_over_breakpoint(debugger *dbg) {
+    uint64_t possible_breakpoint_location = get_pc(&dbg);
+    breakpoint *bp = NULL;
+    breakpoint *t = NULL;
+    int i = 0;
+    while(1) {
+        if(t[i].m_addr == possible_breakpoint_location) {
+          bp = &t[i];
+          break;
+        }
+    }
+   if(bp != NULL && bp->m_enabled) {
+      uintptr_t previous_instruction_address = possible_breakpoint_location;
+     set_pc(dbg, previous_instruction_address);
+    bp->m_enabled = false;
+    ptrace(PTRACE_SINGLESTEP, bp->prog_pid, NULL, NULL);
+    wait_for_signal(dbg->prog_pid);
+    bp->m_enabled = true;
+   }
+}
+
+
 uint64_t read_memory(debugger *dbg, uint64_t address) { //debugger function
     return ptrace(PTRACE_PEEKDATA, dbg->prog_pid, address, NULL);
 }
@@ -211,11 +247,9 @@ void set_breakpoint_at_address(debugger *dbg, intptr_t addr) {
 }
 
 void continue_execution(debugger *dbg) {  //debugger function
+    step_over_breakpoint(dbg);
     ptrace(PTRACE_CONT, dbg->prog_pid, NULL, NULL);
-
-    int wait_status;
-    int options = 0;
-    waitpid(dbg->prog_pid, &wait_status, options);
+    wait_for_signal(dbg->prog_pid);
 }
 
 bool is_prefix(char *s, const char *of) { //debugger function
